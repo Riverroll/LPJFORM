@@ -25,6 +25,19 @@ const DESKTOP_DIR = path.join('C:', 'Users', 'uzlah', 'OneDrive', 'Desktop', 'Ka
 
 app.options('*', cors());
 
+function formatCurrency(amount) {
+  if (isNaN(amount) || amount === undefined) {
+    console.error('Invalid amount for currency formatting:', amount);
+    return 'Rp 0';
+  }
+  return new Intl.NumberFormat('id-ID', {
+    style: 'currency',
+    currency: 'IDR',
+    minimumFractionDigits: 2,
+    maximumFractionDigits: 2
+  }).format(amount);
+}
+
 app.post('/api/generate-lpj', upload.none(), async (req, res) => {
   console.log('Received request body:', JSON.stringify(req.body, null, 2));
 
@@ -67,18 +80,29 @@ app.post('/api/generate-lpj', upload.none(), async (req, res) => {
       },
     });
 
+    const rincianItems = req.body.rincianItems;
+    console.log('Rincian Items:', JSON.stringify(rincianItems, null, 2));
+
+   // Calculate totals from the received data
+   const total_pum = rincianItems.reduce((sum, item) => sum + Number(item.jumlah_pum), 0);
+   const total_lpj = rincianItems.reduce((sum, item) => sum + Number(item.jumlah_lpj), 0);
+
+    console.log('Calculated total_pum:', total_pum);
+    console.log('Calculated total_lpj:', total_lpj);
+
     const templateData = {
       ...req.body,
       tgl_lpj: new Date(req.body.tgl_lpj).toLocaleDateString('id-ID'),
       qrcode: qrCodeImagePath,
-      rincianItems: req.body.rincianItems.map((item, index) => ({
-        no: index + 1, // Auto-numbering
-        deskripsi_pum: item.deskripsi,
-        jumlah_pum: new Intl.NumberFormat('id-ID', { style: 'currency', currency: 'IDR' }).format(item.harga),
-        deskripsi_lpj: item.deskripsi, // Assuming same description for LPJ
-        jumlah_lpj: new Intl.NumberFormat('id-ID', { style: 'currency', currency: 'IDR' }).format(item.harga) // Assuming same amount for LPJ
+      rincianItems: rincianItems.map((item) => ({
+        no: item.no,
+        deskripsi_pum: item.deskripsi_pum,
+        jumlah_pum: formatCurrency(Number(item.jumlah_pum)),
+        deskripsi_lpj: item.deskripsi_lpj,
+        jumlah_lpj: formatCurrency(Number(item.jumlah_lpj))
       })),
-      total: new Intl.NumberFormat('id-ID', { style: 'currency', currency: 'IDR' }).format(req.body.total)
+      total_pum: formatCurrency(total_pum),
+      total_lpj: formatCurrency(total_lpj)
     };
 
     console.log('Template data:', JSON.stringify(templateData, null, 2));

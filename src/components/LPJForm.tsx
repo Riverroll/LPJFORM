@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { Formik, Form, Field, FieldArray, FormikErrors } from 'formik';
+import { Formik, Form, Field, FieldArray } from 'formik';
 import * as Yup from 'yup';
 import {
   TextField,
@@ -17,8 +17,11 @@ import axios from 'axios';
 import LoadingAnimation from './LoadingAnimation';
 
 export interface RincianItem {
-  deskripsi: string;
-  harga: number;
+  id: number;
+  deskripsi_pum: string;
+  jumlah_pum: number;
+  deskripsi_lpj: string;
+  jumlah_lpj: number;
 }
 
 export interface FormValues {
@@ -31,7 +34,8 @@ export interface FormValues {
   jml_request: string;
   jml_terbilang: string;
   rincianItems: RincianItem[];
-  total: number;
+  total_pum: number;
+  total_lpj: number;
   nama_approve_vpkeu: string;
   nama_approve_vptre: string;
   kode_departemen: string;
@@ -57,13 +61,14 @@ const initialValues: FormValues = {
   nama_jenis: '',
   jml_request: '',
   jml_terbilang: '',
-  rincianItems: [{ deskripsi: '', harga: 0 }],
-  total: 0,
+  rincianItems: [{ id: 1, deskripsi_pum: '', jumlah_pum: 0, deskripsi_lpj: '', jumlah_lpj: 0 }],
   nama_approve_vpkeu: '',
   nama_approve_vptre: '',
   kode_departemen: '',
   nama_approve_vp: '',
   tgl_lpj: new Date().toISOString().split('T')[0],
+  total_pum: 0,
+  total_lpj: 0
 };
 
 const validationSchema = Yup.object({
@@ -76,8 +81,10 @@ const validationSchema = Yup.object({
   jml_terbilang: Yup.string().required('Jumlah Terbilang is required'),
   rincianItems: Yup.array().of(
     Yup.object({
-      deskripsi: Yup.string().required('Deskripsi is required'),
-      harga: Yup.number().required('Harga is required').min(0, 'Harga must be positive'),
+      deskripsi_pum: Yup.string().required('Deskripsi PUM is required'),
+      jumlah_pum: Yup.number().required('Jumlah PUM is required').min(0, 'Jumlah PUM must be positive'),
+      deskripsi_lpj: Yup.string().required('Deskripsi LPJ is required'),
+      jumlah_lpj: Yup.number().required('Jumlah LPJ is required').min(0, 'Jumlah LPJ must be positive'),
     })
   ),
   nama_approve_vpkeu: Yup.string().required('Nama Approve VP Keuangan is required'),
@@ -95,24 +102,33 @@ const LPJForm: React.FC = () => {
   useEffect(() => {
     const timer = setInterval(() => {
       setRequestNumber(generateRequestNumber());
-    }, 60000); // Regenerate every minute
+    }, 600000); // Regenerate every minute
 
     return () => clearInterval(timer);
   }, []);
-  const handleSubmit = async (values: FormValues) => {
+  
+   const handleSubmit = async (values: FormValues) => {
     setIsLoading(true);
     setLoadingMessage('Generating LPJ document...');
     try {
+      const rincianItems = values.rincianItems.map(item => ({
+        no: item.id,
+        deskripsi_pum: item.deskripsi_pum,
+        jumlah_pum: Number(item.jumlah_pum),
+        deskripsi_lpj: item.deskripsi_lpj,
+        jumlah_lpj: Number(item.jumlah_lpj)
+      }));
+
+      const total_pum = rincianItems.reduce((sum, item) => sum + item.jumlah_pum, 0);
+      const total_lpj = rincianItems.reduce((sum, item) => sum + item.jumlah_lpj, 0);
+
       const formData = {
         ...values,
-        rincianItems: values.rincianItems.map((item, index) => ({
-          no: index + 1,
-          deskripsi: item.deskripsi,
-          harga: parseFloat(item.harga.toString())
-        })),
-        total: values.rincianItems.reduce((sum, item) => sum + parseFloat(item.harga.toString()), 0)
+        rincianItems,
+        total_pum,
+        total_lpj
       };
-  
+
       const response = await axios.post('http://localhost:3001/api/generate-lpj', formData, {
         responseType: 'blob',
       });
@@ -150,7 +166,7 @@ const LPJForm: React.FC = () => {
             <Form>
               <Grid container spacing={2}>
                 {Object.keys(initialValues).map((key) => {
-                  if (key !== 'rincianItems' && key !== 'total') {
+                  if (key !== 'rincianItems' && key !== 'total_pum' && key !== 'total_lpj') {
                     return (
                       <Grid item xs={12} sm={6} key={key}>
                         <Field
@@ -173,42 +189,65 @@ const LPJForm: React.FC = () => {
               </Grid>
 
               <Typography variant="h6" sx={{ marginTop: 3, marginBottom: 2 }}>
-                Rincian Keperluan PUM
+                Rincian Keperluan PUM dan LPJ
               </Typography>
               <FieldArray name="rincianItems">
                 {({ push, remove }) => (
                   <Box>
-                    {values.rincianItems.map((_, index) => (
-                      <Grid container spacing={2} key={index} sx={{ marginBottom: 2 }}>
-                        <Grid item xs={5}>
+                    {values.rincianItems.map((item, index) => (
+                      <Grid container spacing={2} key={item.id} sx={{ marginBottom: 2 }}>
+                        <Grid item xs={1}>
+                          <Typography>{item.id}</Typography>
+                        </Grid>
+                        <Grid item xs={2}>
                           <Field
                             as={TextField}
                             fullWidth
-                            label="Deskripsi"
-                            name={`rincianItems.${index}.deskripsi`}
-                            error={touched.rincianItems?.[index]?.deskripsi && Boolean((errors.rincianItems?.[index] as FormikErrors<RincianItem>)?.deskripsi)}
-                            helperText={touched.rincianItems?.[index]?.deskripsi && (errors.rincianItems?.[index] as FormikErrors<RincianItem>)?.deskripsi}
+                            label="Deskripsi PUM"
+                            name={`rincianItems.${index}.deskripsi_pum`}
                           />
                         </Grid>
-                        <Grid item xs={5}>
+                        <Grid item xs={2}>
                           <Field
                             as={TextField}
                             fullWidth
-                            label="Harga"
-                            name={`rincianItems.${index}.harga`}
+                            label="Jumlah PUM"
+                            name={`rincianItems.${index}.jumlah_pum`}
                             type="number"
-                            error={touched.rincianItems?.[index]?.harga && Boolean((errors.rincianItems?.[index] as FormikErrors<RincianItem>)?.harga)}
-                            helperText={touched.rincianItems?.[index]?.harga && (errors.rincianItems?.[index] as FormikErrors<RincianItem>)?.harga}
                             onChange={(e: React.ChangeEvent<HTMLInputElement>) => {
-                              setFieldValue(`rincianItems.${index}.harga`, Number(e.target.value));
-                              const newTotal = values.rincianItems.reduce((sum, item, idx) => 
-                                idx === index ? sum + Number(e.target.value) : sum + item.harga, 0
-                              );
-                              setFieldValue('total', newTotal);
+                              const value = e.target.value === '' ? 0 : Number(e.target.value);
+                              setFieldValue(`rincianItems.${index}.jumlah_pum`, value);
+                              const newTotalPUM = values.rincianItems.reduce((sum, item, i) => 
+                                sum + (i === index ? value : Number(item.jumlah_pum)), 0);
+                              setFieldValue('total_pum', newTotalPUM);
                             }}
                           />
                         </Grid>
                         <Grid item xs={2}>
+                          <Field
+                            as={TextField}
+                            fullWidth
+                            label="Deskripsi LPJ"
+                            name={`rincianItems.${index}.deskripsi_lpj`}
+                          />
+                        </Grid>
+                        <Grid item xs={2}>
+                          <Field
+                            as={TextField}
+                            fullWidth
+                            label="Jumlah LPJ"
+                            name={`rincianItems.${index}.jumlah_lpj`}
+                            type="number"
+                            onChange={(e: React.ChangeEvent<HTMLInputElement>) => {
+                              const value = e.target.value === '' ? 0 : Number(e.target.value);
+                              setFieldValue(`rincianItems.${index}.jumlah_lpj`, value);
+                              const newTotalLPJ = values.rincianItems.reduce((sum, item, i) => 
+                                sum + (i === index ? value : Number(item.jumlah_lpj)), 0);
+                              setFieldValue('total_lpj', newTotalLPJ);
+                            }}
+                          />
+                        </Grid>
+                        <Grid item xs={1}>
                           <IconButton onClick={() => remove(index)} disabled={values.rincianItems.length === 1}>
                             <DeleteIcon />
                           </IconButton>
@@ -217,7 +256,10 @@ const LPJForm: React.FC = () => {
                     ))}
                     <Button
                       startIcon={<AddIcon />}
-                      onClick={() => push({ deskripsi: '', harga: 0 })}
+                      onClick={() => {
+                        const newId = Math.max(...values.rincianItems.map(item => item.id), 0) + 1;
+                        push({ id: newId, deskripsi_pum: '', jumlah_pum: 0, deskripsi_lpj: '', jumlah_lpj: 0 });
+                      }}
                       variant="outlined"
                       sx={{ marginTop: 1, marginBottom: 2 }}
                     >
@@ -227,17 +269,31 @@ const LPJForm: React.FC = () => {
                 )}
               </FieldArray>
 
-              <Grid item xs={12} sm={6}>
-                <TextField
-                  fullWidth
-                  label="TOTAL"
-                  name="total"
-                  value={values.total}
-                  InputProps={{
-                    readOnly: true,
-                  }}
-                  sx={{ marginBottom: 2 }}
-                />
+              <Grid container spacing={2}>
+                <Grid item xs={12} sm={6}>
+                  <TextField
+                    fullWidth
+                    label="TOTAL PUM"
+                    name="total_pum"
+                    value={values.total_pum}
+                    InputProps={{
+                      readOnly: true,
+                    }}
+                    sx={{ marginBottom: 2 }}
+                  />
+                </Grid>
+                <Grid item xs={12} sm={6}>
+                  <TextField
+                    fullWidth
+                    label="TOTAL LPJ"
+                    name="total_lpj"
+                    value={values.total_lpj}
+                    InputProps={{
+                      readOnly: true,
+                    }}
+                    sx={{ marginBottom: 2 }}
+                  />
+                </Grid>
               </Grid>
 
               <Button type="submit" variant="contained" color="primary">
