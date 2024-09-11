@@ -47,7 +47,7 @@ app.post('/api/generate-lpj', upload.none(), async (req, res) => {
     console.log('Template file read successfully');
 
     console.log('Generating QR code...');
-    const qrCodeData = `${req.body.no_request}-${req.body.nama_pemohon}-${req.body.tgl_lpj}`;
+    const qrCodeData = req.body.no_request; // Only use the request number for the QR code
     const qrCodeImagePath = path.join(DESKTOP_DIR, `qrcode_${uuidv4()}.png`);
     await QRCode.toFile(qrCodeImagePath, qrCodeData, {
       errorCorrectionLevel: 'H',
