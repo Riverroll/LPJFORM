@@ -21,7 +21,7 @@ app.use(cors());
 app.use(express.json());
 
 const TEMPLATE_PATH = path.resolve(__dirname, 'LPJ_PUM_temp.docx');
-const DESKTOP_DIR = path.join('C:', 'Users', 'uzlah', 'OneDrive', 'Desktop', 'Kantor');
+const DESKTOP_DIR = path.join('D:', 'Project', 'LPJFORM', 'lpj-backend', 'LPJ_PUM_temp');
 
 app.options('*', cors());
 
@@ -124,16 +124,22 @@ app.post('/api/generate-lpj', upload.none(), async (req, res) => {
     console.log('PDF saved to:', outputPath);
 
     res.contentType('application/pdf');
-    res.sendFile(outputPath, (err) => {
+    res.sendFile(outputPath, async (err) => {
       if (err) {
         console.error('Error sending file:', err);
         res.status(500).send('Error sending file');
       } else {
         console.log('PDF file sent to client');
+        
         // Clean up temporary files
-        fsPromises.unlink(qrCodeImagePath).catch(console.error);
-        fsPromises.unlink(filledTemplatePath).catch(console.error);
-        fsPromises.unlink(outputPath).catch(console.error);
+        try {
+          await fsPromises.unlink(qrCodeImagePath);
+          await fsPromises.unlink(filledTemplatePath);
+          await fsPromises.unlink(outputPath);
+          console.log('Temporary files cleaned up successfully');
+        } catch (cleanupError) {
+          console.error('Error cleaning up temporary files:', cleanupError);
+        }
       }
     });
   } catch (error) {
