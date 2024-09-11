@@ -102,7 +102,7 @@ const LPJForm: React.FC = () => {
   useEffect(() => {
     const timer = setInterval(() => {
       setRequestNumber(generateRequestNumber());
-    }, 600000); // Regenerate every minute
+    }, 1500000); // Regenerate every minute
 
     return () => clearInterval(timer);
   }, []);
