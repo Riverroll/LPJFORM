@@ -17,7 +17,7 @@ import Toolbar from '@mui/material/Toolbar';
 import Typography from '@mui/material/Typography';
 import useMediaQuery from '@mui/material/useMediaQuery';
 import LPJForm from './LPJForm';
-import Table from './Table';
+import History from './History';
 
 import { BrowserRouter as Router, Route, Routes, Link } from 'react-router-dom';
 import { useTheme } from '@mui/material/styles';
@@ -49,7 +49,7 @@ export default function Appbar(props: Props) {
         <List>
           {[
             { text: 'Add Form', icon: <PostAddIcon fontSize="large" />, path: '/' },
-            { text: 'Table', icon: <TableViewIcon fontSize="large" />, path: '/table' },
+            { text: 'Table', icon: <TableViewIcon fontSize="large" />, path: '/history' },
           ].map((item) => (
             <ListItem key={item.text} disablePadding>
               <ListItemButton
@@ -146,7 +146,7 @@ export default function Appbar(props: Props) {
         >
           <Routes>
             <Route path="/" element={<LPJForm />} />
-            <Route path="/table" element={<Table />} />
+            <Route path="/history" element={<History />} />
           </Routes>
         </Box>
       </Box>
