@@ -2,7 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { 
     Button, Table, TableBody, TableCell, TableContainer, TableHead, TableRow, Typography, Paper
 } from '@mui/material';
-// import { DataGrid, GridColDef } from '@mui/x-data-grid';
+import { DataGrid, GridColDef } from '@mui/x-data-grid';
 import DownloadIcon from '@mui/icons-material/Download';
 import LoadingAnimation from './LoadingAnimation';
 import axios from 'axios';
@@ -14,26 +14,26 @@ interface LPJHistoryItem {
     file_path: string;
     created_at: string;
 }
-
-// const columns: GridColDef[] = [
-//   { field: 'no_request', headerName: 'No. Request', width: 150},
-//   { field: 'tgl_lpj', headerName: 'Tanggal LPJ', width:150},
-//   { field: 'actions',
-//     headerName: 'Aksi',
-//     width: 150,
-//     renderCell: () => (
-//       <Button onClick={() => window.open(`http://localhost:3001/api/lpj-history/download/${item.id}`, '_blank')}>
-//       Download
-//     </Button>
-//     )
-//   }
-// ]
   
 const History: React.FC = () => {
     const [history, setHistory] = useState<LPJHistoryItem[]>([]);
     const [loading, setLoading] = useState(true);
     const [error, setError] = useState<string | null>(null);
-  
+
+    // const columns: GridColDef[] = [
+    //   { field: 'no_request', headerName: 'No. Request', width:400},
+    //   { field: 'tgl_lpj', headerName: 'Tanggal LPJ', width:400},
+    //   { field: 'actions',
+    //     headerName: 'Aksi',
+    //     width:200,
+    //     renderCell: (params) => (
+    //       <Button onClick={() => handleDownload(params.row.id) }>
+    //         <DownloadIcon />
+    //       </Button>
+    //     )
+    //   }
+    // ]
+
     useEffect(() => {
       const fetchHistory = async () => {
         try {
@@ -96,7 +96,7 @@ const History: React.FC = () => {
             {error}
             <br />
             <Button variant='contained' size='medium' onClick={() => window.location.reload()}>
-                Retry 
+                <DownloadIcon />
             </Button>
         </Typography>
       )
@@ -151,6 +151,21 @@ const History: React.FC = () => {
             </TableBody>
           </Table> 
         </TableContainer>
+        {/* <Paper sx={{ width: '100%' }}>  
+          <DataGrid
+            rows={history}
+            columns={columns}
+            sx={{
+              bgcolor: '#fff',
+              '& .MuiDataGrid-cell': {
+                bgcolor: '#fff',
+              },
+              '& .MuiDataGrid-columnHeaders': {
+                bgcolor: '#f5f5f5',
+              }, 
+            }}
+          />
+        </Paper> */}
       </>
     );
   };
