@@ -4,6 +4,7 @@ import Box from '@mui/material/Box';
 import CssBaseline from '@mui/material/CssBaseline';
 import Divider from '@mui/material/Divider';
 import Drawer from '@mui/material/Drawer';
+import HistoryIcon from '@mui/icons-material/History';
 import IconButton from '@mui/material/IconButton';
 import List from '@mui/material/List';
 import ListItem from '@mui/material/ListItem';
@@ -12,7 +13,6 @@ import ListItemIcon from '@mui/material/ListItemIcon';
 import ListItemText from '@mui/material/ListItemText';
 import MenuIcon from '@mui/icons-material/Menu';
 import PostAddIcon from '@mui/icons-material/PostAdd';
-import TableViewIcon from '@mui/icons-material/TableView';
 import Toolbar from '@mui/material/Toolbar';
 import Typography from '@mui/material/Typography';
 import useMediaQuery from '@mui/material/useMediaQuery';
@@ -49,7 +49,7 @@ export default function Appbar(props: Props) {
         <List>
           {[
             { text: 'Add Form', icon: <PostAddIcon fontSize="large" />, path: '/' },
-            { text: 'Table', icon: <TableViewIcon fontSize="large" />, path: '/history' },
+            { text: 'History', icon: <HistoryIcon fontSize="large" />, path: '/history' },
           ].map((item) => (
             <ListItem key={item.text} disablePadding>
               <ListItemButton

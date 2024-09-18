@@ -4,13 +4,14 @@ const multer = require('multer');
 const fs = require('fs');
 const fsPromises = fs.promises;
 const path = require('path');
-const { v4: uuidv4 } = require('uuid');
 const Docxtemplater = require('docxtemplater');
 const PizZip = require('pizzip');
 const libre = require('libreoffice-convert');
 const util = require('util');
 const QRCode = require('qrcode');
 const ImageModule = require('docxtemplater-image-module-free');
+
+const { v4: uuidv4 } = require('uuid');
 const { Pool } = require('pg')
 
 const libreConvert = util.promisify(libre.convert);
@@ -43,7 +44,7 @@ const createTableQuery = `
 `;
 
 pool.query(createTableQuery)
-    .then(() => console.log('Table created or already exxists'))
+    .then(() => console.log('Table created or already exists'))
     .catch(error => console.log('Error creating table:', error));
 
 app.options('*', cors());
@@ -189,6 +190,40 @@ app.get('/api/lpj-history', async (req, res) => {
   } catch (error) {
     console.error('Error fetching LPJ history:', error);
     res.status(500).json({ error: 'Error fetching LPJ history' });
+  }
+});
+
+app.get('/api/lpj-history/download/:id', async(req, res) => {
+  const id = req.params.id;
+  try {
+    const chooseFile = await pool.query('SELECT file_path FROM lpj_history WHERE id = $1', [id]);
+
+    if(chooseFile.row.length === 0){
+      return res.status(404).send('File not found');
+    }
+
+    const filePath = chooseFile.rows[0].file_path;
+
+    if(!fs.existsSync(filePath)) {
+      console.error(`File ${filePath} does not exist`);
+      return res.status(404).send('File not found');
+    }
+
+    const fileName = path.basename(filePath);
+
+    res.setHeader('Content-Disposition', `attachment; filename="${fileName}"`);
+    res.setHeader('Content-Type', 'application/pdf');
+
+    const fileStream = fs.createReadStream(filePath);
+    fileStream.on('error', (error) => {
+      console.error(`Error reading file: ${error}`);
+      res.status(500).send('Error reading file from server');
+    });
+    fileStream.pipe(res);
+    
+  } catch (error) {
+    console.error('Error during file download:', error);
+    res.status(500).send('Server error during the file download');
   }
 });
 
