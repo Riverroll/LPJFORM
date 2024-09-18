@@ -1,11 +1,24 @@
 import React from 'react';
-import LPJForm from './components/LPJForm';
+import Appbar from './components/Appbar';
+import { createTheme, ThemeProvider } from '@mui/material/styles';
+import { CssBaseline } from '@mui/material';
+
+const theme = createTheme({
+  typography: {
+    fontFamily: [
+      'Poppins',
+    ].join(','),
+  },
+});
 
 const App: React.FC = () => {
   return (
-    <div>
-      <LPJForm />
-    </div>
+    <ThemeProvider theme={theme}>
+      <CssBaseline />
+      <div>
+        <Appbar />
+      </div>
+    </ThemeProvider>
   );
 };
 

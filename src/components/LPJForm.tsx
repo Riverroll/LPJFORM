@@ -6,13 +6,12 @@ import {
   Button,
   Grid,
   Typography,
-  Paper,
   Container,
   IconButton,
   Box
 } from '@mui/material';
 import AddIcon from '@mui/icons-material/Add';
-import DeleteIcon from '@mui/icons-material/Delete';
+import RemoveIcon from '@mui/icons-material/Remove';
 import axios from 'axios';
 import LoadingAnimation from './LoadingAnimation';
 
@@ -150,13 +149,14 @@ const LPJForm: React.FC = () => {
   };
 
   return (
-    <Container maxWidth="md">
-      {isLoading && <LoadingAnimation message={loadingMessage} />}
-      <Paper elevation={3} sx={{ padding: 3, marginTop: 3 }}>
-        <Typography variant="h4" gutterBottom>
+    <Container>
+      <Typography variant="h3" gutterBottom>
           LPJ Form
-        </Typography>
-        <Formik
+      </Typography>
+      
+      {isLoading && <LoadingAnimation message={loadingMessage} />}
+
+      <Formik
           initialValues={{...initialValues, no_request: requestNumber}}
           validationSchema={validationSchema}
           onSubmit={handleSubmit}
@@ -188,18 +188,22 @@ const LPJForm: React.FC = () => {
                 })}
               </Grid>
 
-              <Typography variant="h6" sx={{ marginTop: 3, marginBottom: 2 }}>
+              <Typography variant='h4'sx={{ marginTop: 3, marginBottom: 2, fontSize: {xs:'1.25rem', sm:'2.125rem'} }}>
                 Rincian Keperluan PUM dan LPJ
               </Typography>
+
               <FieldArray name="rincianItems">
                 {({ push, remove }) => (
                   <Box>
                     {values.rincianItems.map((item, index) => (
                       <Grid container spacing={2} key={item.id} sx={{ marginBottom: 2 }}>
-                        <Grid item xs={1}>
-                          <Typography>{item.id}</Typography>
-                        </Grid>
-                        <Grid item xs={2}>
+                        <Field
+                          as={TextField}
+                          value={item.id}
+                          disabled
+                          sx={{display:'none'}}
+                        />
+                        <Grid item xs={15} md={3}>
                           <Field
                             as={TextField}
                             fullWidth
@@ -207,7 +211,7 @@ const LPJForm: React.FC = () => {
                             name={`rincianItems.${index}.deskripsi_pum`}
                           />
                         </Grid>
-                        <Grid item xs={2}>
+                        <Grid item xs={15} md={2}>
                           <Field
                             as={TextField}
                             fullWidth
@@ -223,7 +227,7 @@ const LPJForm: React.FC = () => {
                             }}
                           />
                         </Grid>
-                        <Grid item xs={2}>
+                        <Grid item xs={15} md={3}>
                           <Field
                             as={TextField}
                             fullWidth
@@ -231,7 +235,7 @@ const LPJForm: React.FC = () => {
                             name={`rincianItems.${index}.deskripsi_lpj`}
                           />
                         </Grid>
-                        <Grid item xs={2}>
+                        <Grid item xs={15} md={2}>
                           <Field
                             as={TextField}
                             fullWidth
@@ -247,9 +251,9 @@ const LPJForm: React.FC = () => {
                             }}
                           />
                         </Grid>
-                        <Grid item xs={1}>
+                        <Grid item xs={15} md={1}>
                           <IconButton onClick={() => remove(index)} disabled={values.rincianItems.length === 1}>
-                            <DeleteIcon />
+                            <RemoveIcon />
                           </IconButton>
                         </Grid>
                       </Grid>
@@ -261,7 +265,7 @@ const LPJForm: React.FC = () => {
                         push({ id: newId, deskripsi_pum: '', jumlah_pum: 0, deskripsi_lpj: '', jumlah_lpj: 0 });
                       }}
                       variant="outlined"
-                      sx={{ marginTop: 1, marginBottom: 2 }}
+                      sx={{ marginBottom: 3 }}
                     >
                       Add Item
                     </Button>
@@ -308,7 +312,6 @@ const LPJForm: React.FC = () => {
             </Form>
           )}
         </Formik>
-      </Paper>
     </Container>
   );
 };

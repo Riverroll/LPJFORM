@@ -4,13 +4,15 @@ const multer = require('multer');
 const fs = require('fs');
 const fsPromises = fs.promises;
 const path = require('path');
-const { v4: uuidv4 } = require('uuid');
 const Docxtemplater = require('docxtemplater');
 const PizZip = require('pizzip');
 const libre = require('libreoffice-convert');
 const util = require('util');
 const QRCode = require('qrcode');
 const ImageModule = require('docxtemplater-image-module-free');
+
+const { v4: uuidv4 } = require('uuid');
+const { Pool } = require('pg')
 
 const libreConvert = util.promisify(libre.convert);
 
@@ -22,6 +24,28 @@ app.use(express.json());
 
 const TEMPLATE_PATH = path.resolve(__dirname, 'LPJ_PUM_temp.docx');
 const DESKTOP_DIR = path.join('D:', 'Project', 'LPJFORM', 'lpj-backend', 'LPJ_PUM_temp');
+
+const pool = new Pool({
+  user: 'postgres',
+  host: 'localhost',
+  database: 'lpj_history',
+  password: '1234',
+  port: 5432,
+});
+
+const createTableQuery = `
+  CREATE TABLE IF NOT EXISTS lpj_history (
+    id SERIAL PRIMARY KEY,
+    no_request VARCHAR(255) NOT NULL,
+    tgl_lpj DATE NOT NULL,
+    file_path VARCHAR(255) NOT NULL,
+    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+  )
+`;
+
+pool.query(createTableQuery)
+    .then(() => console.log('Table created or already exists'))
+    .catch(error => console.log('Error creating table:', error));
 
 app.options('*', cors());
 
@@ -122,6 +146,16 @@ app.post('/api/generate-lpj', upload.none(), async (req, res) => {
     const outputPath = path.join(DESKTOP_DIR, `LPJ_PUM_Output_${uuidv4()}.pdf`);
     await fsPromises.writeFile(outputPath, pdfBuffer);
     console.log('PDF saved to:', outputPath);
+    
+    const insertQuery = `
+      INSERT INTO lpj_history (no_request, tgl_lpj, file_path)
+      VALUES ($1, $2, $3)
+      RETURNING id
+    `;
+
+    const values = [req.body.no_request, new Date(req.body.tgl_lpj), outputPath];
+    const result = await pool.query(insertQuery, values);
+    console.log('Saved to database with id:', result.rows[0].id)
 
     res.contentType('application/pdf');
     res.sendFile(outputPath, async (err) => {
@@ -135,7 +169,7 @@ app.post('/api/generate-lpj', upload.none(), async (req, res) => {
         try {
           await fsPromises.unlink(qrCodeImagePath);
           await fsPromises.unlink(filledTemplatePath);
-          await fsPromises.unlink(outputPath);
+          // await fsPromises.unlink(outputPath);
           console.log('Temporary files cleaned up successfully');
         } catch (cleanupError) {
           console.error('Error cleaning up temporary files:', cleanupError);
@@ -145,6 +179,61 @@ app.post('/api/generate-lpj', upload.none(), async (req, res) => {
   } catch (error) {
     console.error('Detailed server error:', error);
     res.status(500).send(`Server error: ${error.message}`);
+  }
+});
+
+app.get('/api/lpj-history', async (req, res) => {
+  try {
+    const query = 'SELECT * FROM lpj_history ORDER BY created_at DESC';
+    const result = await pool.query(query);
+    res.json(result.rows);  // Make sure we're sending JSON, not a string
+  } catch (error) {
+    console.error('Error fetching LPJ history:', error);
+    res.status(500).json({ error: 'Error fetching LPJ history' });
+  }
+});
+
+app.get('/api/lpj-history/download/:id', async(req, res) => {
+  const id = req.params.id;
+  try {
+    const chooseFile = await pool.query('SELECT file_path FROM lpj_history WHERE id = $1', [id]);
+
+    if(chooseFile.row.length === 0){
+      return res.status(404).send('File not found');
+    }
+
+    const filePath = chooseFile.rows[0].file_path;
+
+    if(!fs.existsSync(filePath)) {
+      console.error(`File ${filePath} does not exist`);
+      return res.status(404).send('File not found');
+    }
+
+    const fileHandle = await fs.open(filePath, 'r');
+    const buffer = Buffer.alloc(5);
+    await fileHandle.read(buffer, 0, 5, 0);
+    await fileHandle.close();
+
+    if (buffer.toString() !== '%PDF-') {
+      console.error(`File is not a valid PDF: ${filePath}`);
+      return res.status(400).send('File is not a valid PDF');
+    }
+
+    const fileName = path.basename(filePath);
+
+    res.setHeader('Content-Disposition', `attachment; filename="${fileName}"`);
+    res.setHeader('Content-Type', 'application/pdf');
+
+    const fileStream = fs.createReadStream(filePath);
+    fileStream.on('error', (error) => {
+      console.error(`Error reading file: ${error}`);
+      res.status(500).send('Error reading file from server');
+    });
+    fileStream.pipe(res);
+
+  } catch (error) {
+    console.error('Error during file download:', error);
+    res.status(500).send('Server error during the file download');
   }
 });
 
