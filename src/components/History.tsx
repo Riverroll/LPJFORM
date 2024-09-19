@@ -2,7 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { 
     Button, Table, TableBody, TableCell, TableContainer, TableHead, TableRow, Typography, Paper
 } from '@mui/material';
-import { DataGrid, GridColDef } from '@mui/x-data-grid';
+// import { DataGrid, GridColDef } from '@mui/x-data-grid';
 import DownloadIcon from '@mui/icons-material/Download';
 import LoadingAnimation from './LoadingAnimation';
 import axios from 'axios';
@@ -67,24 +67,32 @@ const History: React.FC = () => {
       fetchHistory();
     }, []);
 
-    const handleDownload = async(id: number) => {
+    const handleDownload = async (id: number) => {
       try {
         const response = await fetch(`/api/lpj-history/download/${id}`);
-        if(!response.ok) throw new Error('Download failed');
+        if (!response.ok) throw new Error('Download failed');
+        
         const blob = await response.blob();
         const url = URL.createObjectURL(blob);
+    
+        // Creating a temporary link to trigger the download
         const a = document.createElement('a');
         a.style.display = 'none';
         a.href = url;
-        a.download = `LPJ_PUM_${id}.pdf`
+        a.download = `LPJ_PUM_${id}.pdf`;
+        
         document.body.appendChild(a);
         a.click();
+    
         window.URL.revokeObjectURL(url);
+        document.body.removeChild(a);
+        
       } catch (error) {
         console.error('Error downloading file:', error);
         alert('Failed to download item, please try again');
       }
-    }
+    };
+    
   
     if (loading) {
       return <LoadingAnimation message='Loading LPJ history' />;

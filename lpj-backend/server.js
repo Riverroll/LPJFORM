@@ -198,29 +198,33 @@ app.get('/api/lpj-history/download/:id', async(req, res) => {
   try {
     const chooseFile = await pool.query('SELECT file_path FROM lpj_history WHERE id = $1', [id]);
 
-    if(chooseFile.row.length === 0){
+    // Fix: Check `rows` instead of `row`
+    if (chooseFile.rows.length === 0) {
       return res.status(404).send('File not found');
     }
 
     const filePath = chooseFile.rows[0].file_path;
 
-    if(!fs.existsSync(filePath)) {
+    // Check if the file exists
+    if (!fs.existsSync(filePath)) {
       console.error(`File ${filePath} does not exist`);
       return res.status(404).send('File not found');
     }
 
-    const fileHandle = await fs.open(filePath, 'r');
+    // Check if the file is a valid PDF (read first 5 bytes)
+    const fileHandle = await fs.promises.open(filePath, 'r');
     const buffer = Buffer.alloc(5);
     await fileHandle.read(buffer, 0, 5, 0);
     await fileHandle.close();
 
+    // Check for the PDF signature
     if (buffer.toString() !== '%PDF-') {
       console.error(`File is not a valid PDF: ${filePath}`);
       return res.status(400).send('File is not a valid PDF');
     }
 
+    // Send the file to the client
     const fileName = path.basename(filePath);
-
     res.setHeader('Content-Disposition', `attachment; filename="${fileName}"`);
     res.setHeader('Content-Type', 'application/pdf');
 
@@ -229,6 +233,8 @@ app.get('/api/lpj-history/download/:id', async(req, res) => {
       console.error(`Error reading file: ${error}`);
       res.status(500).send('Error reading file from server');
     });
+
+    // Stream the file to the response
     fileStream.pipe(res);
 
   } catch (error) {
@@ -236,6 +242,7 @@ app.get('/api/lpj-history/download/:id', async(req, res) => {
     res.status(500).send('Server error during the file download');
   }
 });
+
 
 const PORT = process.env.PORT || 3001;
 app.listen(PORT, () => console.log(`Server running on port ${PORT}`));
