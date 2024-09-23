@@ -70,23 +70,39 @@ const History: React.FC = () => {
     const handleDownload = async (id: number) => {
       try {
         const response = await fetch(`/api/lpj-history/download/${id}`);
-        if (!response.ok) throw new Error('Download failed');
+        if (!response.ok) {
+          const errorText = await response.text();
+          throw new Error(`Download failed: ${errorText}`);
+        }
         
+        const contentDisposition = response.headers.get('Content-Disposition');
+        const filenameMatch = contentDisposition && contentDisposition.match(/filename="?(.+)"?/i);
+        const filename = filenameMatch ? filenameMatch[1] : `LPJ-PUM-${id}.pdf` ;
+
+        const contentLength = response.headers.get('Content-Length');
+        console.log(`Expected file size: ${contentLength} bytes`);
+
         const blob = await response.blob();
-        const url = URL.createObjectURL(blob);
-    
-        // Creating a temporary link to trigger the download
+        console.log(`Actual downloaded size: ${blob.size} bytes`);
+
+        if (blob.size === 0) {
+          throw new Error('Downloaded file is empty');
+        }
+
+        if (contentLength && blob.size !== parseInt(contentLength)) {
+          throw new Error(`File size mismatch. Expected: ${contentLength}, Actual: ${blob.size}`);
+        }
+        
+        const url = window.URL.createObjectURL(blob);
         const a = document.createElement('a');
         a.style.display = 'none';
         a.href = url;
-        a.download = `LPJ_PUM_${id}.pdf`;
-        
+        a.download = filename;
         document.body.appendChild(a);
         a.click();
-    
         window.URL.revokeObjectURL(url);
         document.body.removeChild(a);
-        
+        console.log('Download completed successfully');
       } catch (error) {
         console.error('Error downloading file:', error);
         alert('Failed to download item, please try again');
